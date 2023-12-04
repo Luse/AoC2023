@@ -1,23 +1,16 @@
 import { fetchAndReturnInput } from '../inputs/fetcher.ts';
 
-class Cardstack {
-  cards: Card[] = [];
-  constructor() {
-  }
-  addCard(card: Card) {
-    this.cards.push(card);
-  }
-}
-
 class Card {
   name: string;
-  id = 0;
+  id;
   actualNumbers: number[] = [];
   winningNumbers: number[] = [];
-  wins = 0;
+  actualWinningNumbers: number[] = [];
+  cardsToCopy: number[] = [];
+  copies = 1;
   constructor(name: string) {
     this.name = name;
-    this.id = parseInt(name.split(' ')[1]);
+    this.id = parseInt(name.split(' ').filter((e) => !isNaN(parseInt(e)))[0]);
 
   }
   setWinningNumbers(numbers: number[]) {
@@ -26,28 +19,36 @@ class Card {
   setActualNumbers(numbers: number[]) {
     this.actualNumbers = numbers.filter((e) => !isNaN(e));
   }
-  setWins(wins: number) {
-    this.wins = wins;
+
+  addActualWinningNumber(number: number) {
+    this.actualWinningNumbers.push(number);
+  }
+  addCardsToCopy(cards: number[]) {
+    this.cardsToCopy = this.cardsToCopy.concat(cards);
+  }
+  getCardsToCopy(): number[] {
+    const cardsToCopy = this.actualWinningNumbers.map((_e, i) => this.id + i + 1)
+    this.addCardsToCopy(cardsToCopy)
+    return cardsToCopy;
   }
   getScore(): number {
-    // count occurences of winning numbers in actual numbers
-    let occurences = 0;
     let score = 0;
     this.winningNumbers.forEach((winningNumber) => {
       if (this.actualNumbers.includes(winningNumber)) {
-        if(score === 0) {
+        if (score === 0) {
           score = 1;
         }
-        else{
+        else {
           score = score * 2;
         }
-        occurences++;
+        this.addActualWinningNumber(winningNumber);
       }
     });
-    this.setWins(occurences);
+
     return score;
   }
 }
+
 
 const parseIntoCards = (input: string): Card[] => {
   const parsed = input.split('\n');
@@ -72,25 +73,34 @@ export function solvePart1(input: string): number {
 
   const score = cards.reduce((acc, card) => {
     return acc + card.getScore();
-  } , 0);
+  }, 0);
 
   return score;
 }
-
-export function solvePart2 (input: string): number {
+export const solvePart2 = (input: string): number => {
   const cards = parseIntoCards(input);
 
-  const cardsStack = new Cardstack();
   cards.forEach((card) => {
     card.getScore();
-    cardsStack.addCard(card);
   });
-    
-  return cardsStack.cards.length;
-}
+
+  cards.forEach((card) => {
+    const _cardsToCopy = card.getCardsToCopy();
+    _cardsToCopy.forEach((cardId) => {
+      const cardToCopy = cards.find(card => card.id === cardId)
+      if (cardToCopy) {
+        cardToCopy.copies = cardToCopy.copies + card.copies;
+      }}
+    )});
+  const sumOfCopies = cards.reduce((total, card) => total + card.copies, 0)
+  return sumOfCopies;
+};
 
 // Learn more at https://deno.land/manual/examples/module_metadata#concepts
 if (import.meta.main) {
   const input = await fetchAndReturnInput();
   console.log(solvePart1(input!));
+  console.log(solvePart2(input!));
 }
+
+
