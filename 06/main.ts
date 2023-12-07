@@ -52,7 +52,6 @@ const findOptimalTimeForRace = (race: Race): number[] => {
     }
   }
 
-
   return wayToWin;
 }
 
@@ -83,5 +82,16 @@ export const SolvePart2 = (input: string): number => {
 if (import.meta.main) {
   const input = await fetchAndReturnInput();
   console.log(SolvePart1(input!));
+  performance.mark('start')
   console.log(SolvePart2(input!));
+  performance.mark('end')
+  performance.measure('execTime', 'start', 'end');
+  const measure = performance.getEntriesByName('execTime')[0].toJSON();
+  // {
+  //   name: "execTime",
+  //   entryType: "measure",
+  //   startTime: 718,
+  //   duration: 812,
+  //   detail: null
+  // }
 }
