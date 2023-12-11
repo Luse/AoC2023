@@ -92,6 +92,7 @@ export const solvePart2 = (input: string): number => {
         cardToCopy.copies = cardToCopy.copies + card.copies;
       }}
     )});
+    console.log(cards)
   const sumOfCopies = cards.reduce((total, card) => total + card.copies, 0)
   return sumOfCopies;
 };

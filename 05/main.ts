@@ -1,132 +1,73 @@
 import { fetchAndReturnInput } from '../inputs/fetcher.ts'
 
-// seeds: 79 14 55 13 
-
-// seed-to-soil map:
-// 50 98 2
-// 52 50 48
-
-// soil-to-fertilizer map:
-// 0 15 37
-// 37 52 2
-// 39 0 15
-
-// fertilizer-to-water map:
-// 49 53 8
-// 0 11 42
-// 42 0 7
-// 57 7 4
-
-// water-to-light map:
-// 88 18 7
-// 18 25 70
-
-// light-to-temperature map:
-// 45 77 23
-// 81 45 19
-// 68 64 13
-
-// temperature-to-humidity map:
-// 0 69 1
-// 1 0 69
-
-// humidity-to-location map:
-// 60 56 37
-// 56 93 4
-
-type puzzleMap = {
-  sourceCategory: number,
-  destinationCategory: number,
-  range: number
+type MapEntry = {
+  sourceRangeStart: number,
+  targetRangeStart: number,
+  rangeLength: number
 }
+type GardenMap = MapEntry[];
 
-class SeedToSoilMap {
-  totalSourceMap = new Map<number, number>;
-  totalDestinationMap = new Map<number, number>;
-  unfoldedSourceMap: number[] = [];
-  unfoldedDestinationMap: number[] = [];
-  actualSeedMap = new Map<number, number>;
-  constructor() {
-  }
-  addMap(map: puzzleMap) {
-    this.totalSourceMap.set(map.sourceCategory, map.range);
-    this.totalDestinationMap.set(map.destinationCategory, map.range);
-  }
-  unfoldMap() {
-    this.totalSourceMap.forEach((value, key) => {
-      console.log(key, value)
-      for (let i = 0; i < value; i++) {
-        this.unfoldedSourceMap.push(key+i)
-      }
-    })
-    this.totalDestinationMap.forEach((value, key) => {
-      for (let i = 0; i < value; i++) {
-        this.unfoldedDestinationMap.push(key+i)
-      }
-    })
-    
-    for (let i = 0; i < this.unfoldedSourceMap.length; i++) {
-      this.actualSeedMap.set(this.unfoldedDestinationMap[i], this.unfoldedSourceMap[i])
-    }
-  }
-}
+type InputData = { seeds: number[]; maps: GardenMap[] };
 
-class Seed {
-  id: number;
-
-  constructor(id: number) {
-    this.id = id;
-  }
-
-}
-
-enum types {
-  seeds,
-  "soil-to-fertilizer",
-  "fertilizer-to-water",
-  "water-to-light",
-  "light-to-temperature",
-  "temperature-to-humidity",
-  "humidity-to-location"
-}
-
-const parseInput = (input: string): Seed[] => {
-  const seeds: Seed[] = [];
-  const seedToSoilMap: SeedToSoilMap = new SeedToSoilMap();
+const parseInput = (input: string): InputData => {
   const lines = input.split('\n');
-  let nowParsing = types.seeds;
+  const [seedsLine, ...otherLines] = lines;
+  const seeds: number[] = parseNumbers(seedsLine.split(':')[1]);
 
-  lines.forEach((line) => {
-    if (!line.includes(':') && !line.match(/\d+/g)) {
-      nowParsing += 1;
-      return;
+  const maps: GardenMap[] = [];
+
+  for(const line of otherLines) {
+    console.log('line', line);
+    if (line.trim() === '') {
+      continue;
     }
-    if (nowParsing === types.seeds) {
-      const seedIds = line.split(' ').map((id) => parseInt(id)).filter((id) => !isNaN(id));
-      seedIds.forEach((id) => seeds.push(new Seed(id)));
-      return;
+    if(line.includes("map")){
+      maps.push([]);
+      continue;
     }
-    if (nowParsing === types["soil-to-fertilizer"]) {
-      const [sourceCategory, destinationCategory, range] = line.split(' ').map((id) => parseInt(id)).filter((id) => !isNaN(id));
-      if (sourceCategory && destinationCategory && range) {
-        seedToSoilMap.addMap({ sourceCategory, destinationCategory, range });
-      }
-      return;
-    }
+    const currentMap = maps[maps.length - 1];
+    console.log('currentMap', currentMap);
+    const [targetRangeStart, sourceRangeStart, rangeLength] = parseNumbers(line);
+    currentMap.push({
+      targetRangeStart,
+      sourceRangeStart,
+      rangeLength,
+    });
+  }
 
-  })
-  seedToSoilMap.unfoldMap()
-  console.log(seedToSoilMap);
+  function parseNumbers(line: string) {
+    return line
+      .trim()
+      .split(' ')
+      .map((x) => parseInt(x, 10));
+  }
 
-  console.log(seeds)
-  return seeds
-
+  return { seeds, maps };
 }
 
+function getLocationBySeed(seed: number, maps: GardenMap[]) {
+  return maps.reduce((dst, map) => getTargetLocation(dst, map), seed);
+}
+
+function getTargetLocation(src: number, map: GardenMap) {
+  const mapEntry = map.find(
+    ({ sourceRangeStart, rangeLength }) =>
+      src >= sourceRangeStart && src <= sourceRangeStart + rangeLength
+  );
+
+  if (!mapEntry) {
+    return src;
+  }
+
+  const offset = src - mapEntry.sourceRangeStart;
+  const dst = mapEntry.targetRangeStart + offset;
+  return dst;
+}
 
 export const solvePart1 = (input: string): number => {
-  parseInput(input)
-  return 0;
+  const { seeds, maps } = parseInput(input);
+  const locations = seeds.map((seed) => getLocationBySeed(seed, maps));
+  return Math.min(...locations);
 }
 
 // Learn more at https://deno.land/manual/examples/module_metadata#concepts
